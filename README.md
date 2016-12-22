@@ -280,7 +280,7 @@ THIS IS THE FIRST LINE.
 
 ## Todo
 
-- [v] Add a helper function for converting HTML strings into []telegraph.Node
+- [X] Add a helper function for converting HTML strings into []telegraph.Node
 - [ ] Add tests
 - [ ] Add benchmarks
 
