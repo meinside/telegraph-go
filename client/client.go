@@ -47,6 +47,15 @@ func (c *Client) CreatePage(title, authorName, authorUrl string, content []teleg
 	return telegraph.CreatePage(c.AccessToken, title, authorName, authorUrl, content, returnContent)
 }
 
+// Create a new page with HTML.
+func (c *Client) CreatePageWithHtml(title, authorName, authorUrl, htmlContent string, returnContent bool) (page telegraph.Page, err error) {
+	if nodes, err := telegraph.NewNodesWithHtml(htmlContent); err == nil {
+		return telegraph.CreatePage(c.AccessToken, title, authorName, authorUrl, nodes, returnContent)
+	} else {
+		return telegraph.Page{}, err
+	}
+}
+
 // Edit a page.
 func (c *Client) EditPage(path, title string, content []telegraph.Node, authorName, authorUrl string, returnContent bool) (page telegraph.Page, err error) {
 	return telegraph.EditPage(c.AccessToken, path, title, content, authorName, authorUrl, returnContent)

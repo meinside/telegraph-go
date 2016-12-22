@@ -164,34 +164,16 @@ func main() {
 			log.Printf("* EditAccountInfo error: %s\n", err)
 		}
 
-		// HTML nodes
-		content := []tg.Node{
-			tg.NewNodeWithString("THIS IS THE FIRST LINE."),
-			tg.NewNodeWithElement(
-				"p",
-				nil,
-				[]tg.Node{
-					tg.NewNodeWithElement(
-						"img",
-						map[string]string{
-							"src": "http://i2.cdn.cnn.com/cnnnext/dam/assets/160927210830-tk-ah0927-exlarge-169.jpg",
-							"alt": "Pepe the frog",
-						},
-						nil,
-					),
-					tg.NewNodeWithElement(
-						"b",
-						nil,
-						[]tg.Node{
-							tg.NewNodeWithString("THIS IS AN IMAGE."),
-						},
-					),
-				},
-			),
-		}
+		// HTML for page
+		html := `This page is for <b>testing</b>.
+THIS IS THE FIRST LINE.
+<p>
+	<img src="http://i2.cdn.cnn.com/cnnnext/dam/assets/160927210830-tk-ah0927-exlarge-169.jpg" alt="Pepe the frog">
+</p>
+<font color="#FF0000">THIS IS THE RED LINE.</font> <i>(coloring not supported?)</i>`
 
 		// CreatePage
-		if page, err := client.CreatePage("Test page", "Telegraph Test", "", content, true); err == nil {
+		if page, err := client.CreatePageWithHtml("Test page", "Telegraph Test", "", html, true); err == nil {
 			log.Printf("> CreatePage result: %#+v\n", page)
 
 			log.Printf("> Created page url: %s\n", page.Url)
@@ -202,6 +184,57 @@ func main() {
 			} else {
 				log.Printf("* GetPage error: %s\n", err)
 			}
+
+			content, _ := tg.NewNodesWithHtml(html)
+			/*
+				// => will be converted to:
+
+				[]telegraph.Node{
+					"This page is for ",
+					telegraph.NodeElement{
+						Tag:"b",
+						Attrs:map[string]string{},
+						Children:[]telegraph.Node{
+							"testing",
+						},
+					},
+					".\nTHIS IS THE FIRST LINE.\n",
+					telegraph.NodeElement{
+						Tag:"p",
+						Attrs:map[string]string{},
+						Children:[]telegraph.Node{
+							"\n\t",
+							telegraph.NodeElement{
+								Tag:"img",
+								Attrs:map[string]string{
+									"src": "http://i2.cdn.cnn.com/cnnnext/dam/assets/160927210830-tk-ah0927-exlarge-169.jpg",
+									"alt": "Pepe the frog",
+								},
+								Children:[]telegraph.Node{},
+							},
+							"\n",
+						},
+					},
+					"\n",
+					telegraph.NodeElement{
+						Tag:"font",
+						Attrs:map[string]string{
+							"color":"#FF0000",
+						},
+						Children:[]telegraph.Node{
+							"THIS IS THE RED LINE.",
+						},
+					},
+					" ",
+					telegraph.NodeElement{
+						Tag:"i",
+						Attrs:map[string]string{},
+						Children:[]telegraph.Node{
+							"(coloring not supported?)",
+						},
+					},
+				}
+			*/
 
 			// EditPage
 			if page, err := client.EditPage(page.Path, "Test page (edited)", content, "", "http://www.google.com", true); err == nil {
@@ -247,7 +280,7 @@ func main() {
 
 ## Todo
 
-- [ ] Add a helper function for converting HTML strings into []telegraph.Node
+- [v] Add a helper function for converting HTML strings into []telegraph.Node
 - [ ] Add tests
 - [ ] Add benchmarks
 

@@ -11,6 +11,11 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
+
+	"golang.org/x/net/html"
+
+	"github.com/PuerkitoBio/goquery"
 )
 
 const (
@@ -444,12 +449,12 @@ func GetViews(path string, year, month, day, hour int) (views PageViews, err err
 	return PageViews{}, err
 }
 
-// create a new node with given string
+// Create a new node with given string.
 func NewNodeWithString(str string) Node {
 	return Node(str)
 }
 
-// create a new node with given element
+// Create a new node with given element.
 func NewNodeWithElement(tag string, attrs map[string]string, children []Node) Node {
 	return Node(NodeElement{
 		Tag:      tag,
@@ -459,7 +464,57 @@ func NewNodeWithElement(tag string, attrs map[string]string, children []Node) No
 
 }
 
-// http post (www-form urlencoded)
+// Create new nodes with given HTML string.
+func NewNodesWithHtml(html string) ([]Node, error) {
+	if doc, err := goquery.NewDocumentFromReader(strings.NewReader(html)); err == nil {
+		return traverseNodes(doc.Find("body").Contents()), nil
+	} else {
+		return nil, err
+	}
+}
+
+// traverse DOM for creating new nodes
+func traverseNodes(selections *goquery.Selection) []Node {
+	nodes := []Node{}
+
+	var tag string
+	var attrs map[string]string
+	var element NodeElement
+
+	selections.Each(func(_ int, child *goquery.Selection) {
+		for _, node := range child.Nodes {
+			switch node.Type {
+			case html.TextNode:
+				nodes = append(nodes, node.Data) // append text
+			case html.ElementNode:
+				// attributes
+				attrs = map[string]string{}
+				for _, attr := range node.Attr {
+					attrs[attr.Key] = attr.Val
+				}
+				// new node element
+				if len(node.Namespace) > 0 {
+					tag = fmt.Sprintf("%s.%s", node.Namespace, node.Data)
+				} else {
+					tag = node.Data
+				}
+				element = NodeElement{
+					Tag:      tag,
+					Attrs:    attrs,
+					Children: traverseNodes(child.Contents()),
+				}
+
+				nodes = append(nodes, element) // append element
+			default:
+				continue // skip other things
+			}
+		}
+	})
+
+	return nodes
+}
+
+// send HTTP POST request (www-form urlencoded)
 func httpPost(apiUrl string, params map[string]interface{}) (jsonBytes []byte, err error) {
 	v("sending post request to url: %s, params: %#v", apiUrl, params)
 
