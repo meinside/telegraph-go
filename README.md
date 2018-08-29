@@ -80,7 +80,7 @@ func main() {
 		if page, err := tg.CreatePage(accessToken, "Test page", "Telegraph Test", "", content, true); err == nil {
 			log.Printf("> CreatePage result: %#+v\n", page)
 
-			log.Printf("> Created page url: %s\n", page.Url)
+			log.Printf("> Created page url: %s\n", page.URL)
 
 			// GetPage
 			if page, err := tg.GetPage(page.Path, true); err == nil {
@@ -93,7 +93,7 @@ func main() {
 			if page, err := tg.EditPage(accessToken, page.Path, "Test page (edited)", content, "", "http://www.google.com", true); err == nil {
 				log.Printf("> EditPage result: %#+v\n", page)
 
-				log.Printf("> Edited page url: %s\n", page.Url)
+				log.Printf("> Edited page url: %s\n", page.URL)
 			} else {
 				log.Printf("* EditPage error: %s\n", err)
 			}
@@ -173,10 +173,10 @@ THIS IS THE FIRST LINE.
 <font color="#FF0000">THIS IS THE RED LINE.</font> <i>(coloring not supported?)</i>`
 
 		// CreatePage
-		if page, err := client.CreatePageWithHtml("Test page", "Telegraph Test", "", html, true); err == nil {
+		if page, err := client.CreatePageWithHTML("Test page", "Telegraph Test", "", html, true); err == nil {
 			log.Printf("> CreatePage result: %#+v\n", page)
 
-			log.Printf("> Created page url: %s\n", page.Url)
+			log.Printf("> Created page url: %s\n", page.URL)
 
 			// GetPage
 			if page, err := client.GetPage(page.Path, true); err == nil {
@@ -185,7 +185,7 @@ THIS IS THE FIRST LINE.
 				log.Printf("* GetPage error: %s\n", err)
 			}
 
-			content, _ := tg.NewNodesWithHtml(html)
+			content, _ := tg.NewNodesWithHTML(html)
 			/*
 				// => will be converted to:
 
@@ -240,7 +240,7 @@ THIS IS THE FIRST LINE.
 			if page, err := client.EditPage(page.Path, "Test page (edited)", content, "", "http://www.google.com", true); err == nil {
 				log.Printf("> EditPage result: %#+v\n", page)
 
-				log.Printf("> Edited page url: %s\n", page.Url)
+				log.Printf("> Edited page url: %s\n", page.URL)
 			} else {
 				log.Printf("* EditPage error: %s\n", err)
 			}
@@ -281,6 +281,7 @@ THIS IS THE FIRST LINE.
 ## Todo
 
 - [X] Add a helper function for converting HTML strings into []telegraph.Node
+- [ ] Support go module
 - [ ] Add tests
 - [ ] Add benchmarks
 
