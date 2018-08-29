@@ -4,74 +4,81 @@ import (
 	"github.com/meinside/telegraph-go"
 )
 
+// Client struct
 type Client struct {
 	telegraph.Account
 }
 
-// Create a new Telegraph client.
-func Create(shortName, authorName, authorUrl string) (*Client, error) {
-	if client, err := telegraph.CreateAccount(shortName, authorName, authorUrl); err == nil {
+// Create creates a new Telegraph client.
+func Create(shortName, authorName, authorURL string) (*Client, error) {
+	client, err := telegraph.CreateAccount(shortName, authorName, authorURL)
+
+	if err == nil {
 		return &Client{client}, nil
-	} else {
-		return nil, err
 	}
+
+	return nil, err
 }
 
 // Load a Telegraph client with access token.
 func Load(accessToken string) (*Client, error) {
-	if client, err := telegraph.GetAccountInfo(accessToken, []string{"short_name", "author_name", "author_url"}); err == nil {
+	client, err := telegraph.GetAccountInfo(accessToken, []string{"short_name", "author_name", "author_url"})
+
+	if err == nil {
 		client.AccessToken = accessToken
 		return &Client{client}, nil
-	} else {
-		return nil, err
 	}
+
+	return nil, err
 }
 
-// Edit account info.
-func (c *Client) EditAccountInfo(shortName, authorName, authorUrl string) (acc telegraph.Account, err error) {
-	return telegraph.EditAccountInfo(c.AccessToken, shortName, authorName, authorUrl)
+// EditAccountInfo edits account info.
+func (c *Client) EditAccountInfo(shortName, authorName, authorURL string) (acc telegraph.Account, err error) {
+	return telegraph.EditAccountInfo(c.AccessToken, shortName, authorName, authorURL)
 }
 
-// Get account info.
+// GetAccountInfo fetches account info.
 func (c *Client) GetAccountInfo(fields []string) (acc telegraph.Account, err error) {
 	return telegraph.GetAccountInfo(c.AccessToken, fields)
 }
 
-// Revoke access token.
+// RevokeAccessToken revokes access token.
 func (c *Client) RevokeAccessToken() (acc telegraph.Account, err error) {
 	return telegraph.RevokeAccessToken(c.AccessToken)
 }
 
-// Create a new page.
-func (c *Client) CreatePage(title, authorName, authorUrl string, content []telegraph.Node, returnContent bool) (page telegraph.Page, err error) {
-	return telegraph.CreatePage(c.AccessToken, title, authorName, authorUrl, content, returnContent)
+// CreatePage creates a new page.
+func (c *Client) CreatePage(title, authorName, authorURL string, content []telegraph.Node, returnContent bool) (page telegraph.Page, err error) {
+	return telegraph.CreatePage(c.AccessToken, title, authorName, authorURL, content, returnContent)
 }
 
-// Create a new page with HTML.
-func (c *Client) CreatePageWithHtml(title, authorName, authorUrl, htmlContent string, returnContent bool) (page telegraph.Page, err error) {
-	if nodes, err := telegraph.NewNodesWithHtml(htmlContent); err == nil {
-		return telegraph.CreatePage(c.AccessToken, title, authorName, authorUrl, nodes, returnContent)
-	} else {
-		return telegraph.Page{}, err
+// CreatePageWithHTML creates a new page with HTML.
+func (c *Client) CreatePageWithHTML(title, authorName, authorURL, htmlContent string, returnContent bool) (page telegraph.Page, err error) {
+	nodes, err := telegraph.NewNodesWithHTML(htmlContent)
+
+	if err == nil {
+		return telegraph.CreatePage(c.AccessToken, title, authorName, authorURL, nodes, returnContent)
 	}
+
+	return telegraph.Page{}, err
 }
 
-// Edit a page.
-func (c *Client) EditPage(path, title string, content []telegraph.Node, authorName, authorUrl string, returnContent bool) (page telegraph.Page, err error) {
-	return telegraph.EditPage(c.AccessToken, path, title, content, authorName, authorUrl, returnContent)
+// EditPage edits a page.
+func (c *Client) EditPage(path, title string, content []telegraph.Node, authorName, authorURL string, returnContent bool) (page telegraph.Page, err error) {
+	return telegraph.EditPage(c.AccessToken, path, title, content, authorName, authorURL, returnContent)
 }
 
-// Get a page.
+// GetPage fetches a page.
 func (c *Client) GetPage(path string, returnContent bool) (page telegraph.Page, err error) {
 	return telegraph.GetPage(path, returnContent)
 }
 
-// Get page list.
+// GetPageList fetches page list.
 func (c *Client) GetPageList(offset, limit int) (list telegraph.PageList, err error) {
 	return telegraph.GetPageList(c.AccessToken, offset, limit)
 }
 
-// Get views of a page.
+// GetViews fetches views of a page.
 func (c *Client) GetViews(path string, year, month, day, hour int) (views telegraph.PageViews, err error) {
 	return telegraph.GetViews(path, year, month, day, hour)
 }
