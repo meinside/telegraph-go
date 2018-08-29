@@ -281,7 +281,7 @@ THIS IS THE FIRST LINE.
 ## Todo
 
 - [X] Add a helper function for converting HTML strings into []telegraph.Node
-- [ ] Support go module
+- [X] Support go module
 - [ ] Add tests
 - [ ] Add benchmarks
 
