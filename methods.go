@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net"
 	"net/http"
@@ -446,10 +446,9 @@ func httpPost(apiURL string, params map[string]interface{}) (jsonBytes []byte, e
 	var js []byte
 	paramValues := url.Values{}
 	for key, value := range params {
-		switch value.(type) {
-		case string:
-			paramValues[key] = []string{value.(string)}
-		default:
+		if v, ok := value.(string); ok {
+			paramValues[key] = []string{v}
+		} else {
 			if js, err = json.Marshal(value); err == nil {
 				paramValues[key] = []string{string(js)}
 			} else {
@@ -487,7 +486,7 @@ func httpPost(apiURL string, params map[string]interface{}) (jsonBytes []byte, e
 		}
 
 		if err == nil {
-			if jsonBytes, err = ioutil.ReadAll(res.Body); err == nil {
+			if jsonBytes, err = io.ReadAll(res.Body); err == nil {
 				return jsonBytes, nil
 			}
 
