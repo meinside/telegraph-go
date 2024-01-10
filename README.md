@@ -21,7 +21,3 @@ See codes in [./samples/](https://github.com/meinside/telegraph-go/tree/master/s
 - [ ] Add tests
 - [ ] Add benchmarks
 
-## License
-
-MIT
-
