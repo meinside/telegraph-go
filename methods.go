@@ -28,10 +28,10 @@ import (
 //
 // http://telegra.ph/api#createAccount
 func (c *Client) CreateAccount(shortName, authorName, authorURL string) (acc Account, err error) {
-	url := fmt.Sprintf("%s/%s", APIBaseURL, "createAccount")
+	url := fmt.Sprintf("%s/%s", apiBaseURL, "createAccount")
 
 	// params
-	params := map[string]interface{}{
+	params := map[string]any{
 		"short_name": shortName,
 	}
 	if len(authorName) > 0 { // optional
@@ -41,21 +41,7 @@ func (c *Client) CreateAccount(shortName, authorName, authorURL string) (acc Acc
 		params["author_url"] = authorURL
 	}
 
-	var bytes []byte
-	if bytes, err = httpPost(url, params); err == nil {
-		var res APIResponseAccount
-		if err = json.Unmarshal(bytes, &res); err == nil {
-			if res.Ok {
-				return res.Result, nil
-			}
-
-			err = fmt.Errorf(res.Error)
-
-			l("API error from %s: %s\n", url, err)
-		}
-	}
-
-	return Account{}, err
+	return request[Account](url, params)
 }
 
 // EditAccountInfo updates information about a Telegraph account.
@@ -66,10 +52,10 @@ func (c *Client) CreateAccount(shortName, authorName, authorURL string) (acc Acc
 //
 // http://telegra.ph/api#editAccountInfo
 func (c *Client) EditAccountInfo(shortName, authorName, authorURL string) (acc Account, err error) {
-	url := fmt.Sprintf("%s/%s", APIBaseURL, "editAccountInfo")
+	url := fmt.Sprintf("%s/%s", apiBaseURL, "editAccountInfo")
 
 	// params
-	params := map[string]interface{}{
+	params := map[string]any{
 		"access_token": c.AccessToken,
 		"short_name":   shortName,
 	}
@@ -80,21 +66,7 @@ func (c *Client) EditAccountInfo(shortName, authorName, authorURL string) (acc A
 		params["author_url"] = authorURL
 	}
 
-	var bytes []byte
-	if bytes, err = httpPost(url, params); err == nil {
-		var res APIResponseAccount
-		if err = json.Unmarshal(bytes, &res); err == nil {
-			if res.Ok {
-				return res.Result, nil
-			}
-
-			err = fmt.Errorf(res.Error)
-
-			l("API error from %s: %s\n", url, err)
-		}
-	}
-
-	return Account{}, err
+	return request[Account](url, params)
 }
 
 // GetAccountInfo fetches information about a Telegraph account.
@@ -104,10 +76,10 @@ func (c *Client) EditAccountInfo(shortName, authorName, authorURL string) (acc A
 //
 // http://telegra.ph/api#getAccountInfo
 func (c *Client) GetAccountInfo(fields []string) (acc Account, err error) {
-	url := fmt.Sprintf("%s/%s", APIBaseURL, "getAccountInfo")
+	url := fmt.Sprintf("%s/%s", apiBaseURL, "getAccountInfo")
 
 	// params
-	params := map[string]interface{}{
+	params := map[string]any{
 		"access_token": c.AccessToken,
 	}
 	if len(fields) > 0 { // optional
@@ -116,49 +88,21 @@ func (c *Client) GetAccountInfo(fields []string) (acc Account, err error) {
 		params["fields"] = []string{"short_name", "author_name", "author_url"} // default
 	}
 
-	var bytes []byte
-	if bytes, err = httpPost(url, params); err == nil {
-		var res APIResponseAccount
-		if err = json.Unmarshal(bytes, &res); err == nil {
-			if res.Ok {
-				return res.Result, nil
-			}
-
-			err = fmt.Errorf(res.Error)
-
-			l("API error from %s: %s\n", url, err)
-		}
-	}
-
-	return Account{}, err
+	return request[Account](url, params)
 }
 
 // RevokeAccessToken revokes access token and generate a new one.
 //
 // http://telegra.ph/api#revokeAccessToken
 func (c *Client) RevokeAccessToken() (acc Account, err error) {
-	url := fmt.Sprintf("%s/%s", APIBaseURL, "revokeAccessToken")
+	url := fmt.Sprintf("%s/%s", apiBaseURL, "revokeAccessToken")
 
 	// params
-	params := map[string]interface{}{
+	params := map[string]any{
 		"access_token": c.AccessToken,
 	}
 
-	var bytes []byte
-	if bytes, err = httpPost(url, params); err == nil {
-		var res APIResponseAccount
-		if err = json.Unmarshal(bytes, &res); err == nil {
-			if res.Ok {
-				return res.Result, nil
-			}
-
-			err = fmt.Errorf(res.Error)
-
-			l("API error from %s: %s\n", url, err)
-		}
-	}
-
-	return Account{}, err
+	return request[Account](url, params)
 }
 
 // CreatePage creates a new Telegraph page.
@@ -171,10 +115,10 @@ func (c *Client) RevokeAccessToken() (acc Account, err error) {
 //
 // http://telegra.ph/api#createPage
 func (c *Client) CreatePage(title, authorName, authorURL string, content []Node, returnContent bool) (page Page, err error) {
-	url := fmt.Sprintf("%s/%s", APIBaseURL, "createPage")
+	url := fmt.Sprintf("%s/%s", apiBaseURL, "createPage")
 
 	// params
-	params := map[string]interface{}{
+	params := map[string]any{
 		"access_token": c.AccessToken,
 		"title":        title,
 		"content":      castNodes(content),
@@ -189,21 +133,7 @@ func (c *Client) CreatePage(title, authorName, authorURL string, content []Node,
 		params["return_content"] = returnContent
 	}
 
-	var bytes []byte
-	if bytes, err = httpPost(url, params); err == nil {
-		var res APIResponsePage
-		if err = json.Unmarshal(bytes, &res); err == nil {
-			if res.Ok {
-				return res.Result, nil
-			}
-
-			err = fmt.Errorf(res.Error)
-
-			l("API error from %s: %s\n", url, err)
-		}
-	}
-
-	return Page{}, err
+	return request[Page](url, params)
 }
 
 // CreatePageWithHTML creates a new page with HTML.
@@ -228,10 +158,10 @@ func (c *Client) CreatePageWithHTML(title, authorName, authorURL, htmlContent st
 //
 // http://telegra.ph/api#editPage
 func (c *Client) EditPage(path, title string, content []Node, authorName, authorURL string, returnContent bool) (page Page, err error) {
-	url := fmt.Sprintf("%s/%s/%s", APIBaseURL, "editPage", path)
+	url := fmt.Sprintf("%s/%s/%s", apiBaseURL, "editPage", path)
 
 	// params
-	params := map[string]interface{}{
+	params := map[string]any{
 		"access_token": c.AccessToken,
 		"title":        title,
 		"content":      castNodes(content),
@@ -246,21 +176,7 @@ func (c *Client) EditPage(path, title string, content []Node, authorName, author
 		params["return_content"] = returnContent
 	}
 
-	var bytes []byte
-	if bytes, err = httpPost(url, params); err == nil {
-		var res APIResponsePage
-		if err = json.Unmarshal(bytes, &res); err == nil {
-			if res.Ok {
-				return res.Result, nil
-			}
-
-			err = fmt.Errorf(res.Error)
-
-			l("API error from %s: %s\n", url, err)
-		}
-	}
-
-	return Page{}, err
+	return request[Page](url, params)
 }
 
 // GetPage fetches a Telegraph page.
@@ -270,25 +186,14 @@ func (c *Client) EditPage(path, title string, content []Node, authorName, author
 //
 // http://telegra.ph/api#getPage
 func (c *Client) GetPage(path string, returnContent bool) (page Page, err error) {
-	url := fmt.Sprintf("%s/%s/%s", APIBaseURL, "getPage", path)
+	url := fmt.Sprintf("%s/%s/%s", apiBaseURL, "getPage", path)
 
-	var bytes []byte
-	if bytes, err = httpPost(url, map[string]interface{}{
+	// params
+	params := map[string]any{
 		"return_content": returnContent,
-	}); err == nil {
-		var res APIResponsePage
-		if err = json.Unmarshal(bytes, &res); err == nil {
-			if res.Ok {
-				return res.Result, nil
-			}
-
-			err = fmt.Errorf(res.Error)
-
-			l("API error from %s: %s\n", url, err)
-		}
 	}
 
-	return Page{}, err
+	return request[Page](url, params)
 }
 
 // GetPageList fetches a list of pages belonging to a Telegraph account.
@@ -298,10 +203,10 @@ func (c *Client) GetPage(path string, returnContent bool) (page Page, err error)
 //
 // http://telegra.ph/api#getPageList
 func (c *Client) GetPageList(offset, limit int) (list PageList, err error) {
-	url := fmt.Sprintf("%s/%s", APIBaseURL, "getPageList")
+	url := fmt.Sprintf("%s/%s", apiBaseURL, "getPageList")
 
 	// params
-	params := map[string]interface{}{
+	params := map[string]any{
 		"access_token": c.AccessToken,
 	}
 	if offset > 0 { // optional
@@ -311,21 +216,7 @@ func (c *Client) GetPageList(offset, limit int) (list PageList, err error) {
 		params["limit"] = limit
 	}
 
-	var bytes []byte
-	if bytes, err = httpPost(url, params); err == nil {
-		var res APIResponsePageList
-		if err = json.Unmarshal(bytes, &res); err == nil {
-			if res.Ok {
-				return res.Result, nil
-			}
-
-			err = fmt.Errorf(res.Error)
-
-			l("API error from %s: %s\n", url, err)
-		}
-	}
-
-	return PageList{}, err
+	return request[PageList](url, params)
 }
 
 // GetViews fetches the number of views for a Telegraph page.
@@ -338,10 +229,10 @@ func (c *Client) GetPageList(offset, limit int) (list PageList, err error) {
 //
 // http://telegra.ph/api#getViews
 func (c *Client) GetViews(path string, year, month, day, hour int) (views PageViews, err error) {
-	url := fmt.Sprintf("%s/%s/%s", APIBaseURL, "getViews", path)
+	url := fmt.Sprintf("%s/%s/%s", apiBaseURL, "getViews", path)
 
 	// params
-	params := map[string]interface{}{}
+	params := map[string]any{}
 	if year > 0 { // optional
 		params["year"] = year
 	}
@@ -355,21 +246,7 @@ func (c *Client) GetViews(path string, year, month, day, hour int) (views PageVi
 		params["hour"] = hour
 	}
 
-	var bytes []byte
-	if bytes, err = httpPost(url, params); err == nil {
-		var res APIResponsePageViews
-		if err = json.Unmarshal(bytes, &res); err == nil {
-			if res.Ok {
-				return res.Result, nil
-			}
-
-			err = fmt.Errorf(res.Error)
-
-			l("API error from %s: %s\n", url, err)
-		}
-	}
-
-	return PageViews{}, err
+	return request[PageViews](url, params)
 }
 
 // NewNodeWithString creates a new node with given string.
@@ -440,7 +317,7 @@ func traverseNodes(selections *goquery.Selection) []Node {
 }
 
 // send HTTP POST request (www-form urlencoded)
-func httpPost(apiURL string, params map[string]interface{}) (jsonBytes []byte, err error) {
+func httpPost(apiURL string, params map[string]any) (jsonBytes []byte, err error) {
 	v("sending post request to url: %s, params: %#v", apiURL, params)
 
 	var js []byte
@@ -502,8 +379,8 @@ func httpPost(apiURL string, params map[string]interface{}) (jsonBytes []byte, e
 }
 
 // cast nodes for marshalling
-func castNodes(nodes []Node) []interface{} {
-	castNodes := []interface{}{}
+func castNodes(nodes []Node) []any {
+	castNodes := []any{}
 
 	for _, node := range nodes {
 		switch node.(type) {
@@ -522,13 +399,34 @@ func castNodes(nodes []Node) []interface{} {
 }
 
 // for logging
-func l(format string, v ...interface{}) {
+func l(format string, v ...any) {
 	log.Printf(format, v...)
 }
 
 // for logging verbosely
-func v(format string, v ...interface{}) {
+func v(format string, v ...any) {
 	if Verbose {
 		l(format, v...)
 	}
+}
+
+// send HTTP request for APIResponse[T] and fetch its result.
+func request[T any](url string, params map[string]any) (result T, err error) {
+	var bytes []byte
+	if bytes, err = httpPost(url, params); err == nil {
+		var res APIResponse[T]
+		if err = json.Unmarshal(bytes, &res); err == nil {
+			if res.Ok {
+				return res.Result, nil
+			} else {
+				return result /* = empty */, fmt.Errorf("erroneous response: %s", res.Error)
+			}
+		}
+
+		err = fmt.Errorf("json parse error: %s (%s)", err, string(bytes))
+	} else {
+		err = fmt.Errorf("request to '%s' failed with error: %s", url, err)
+	}
+
+	return result /* = empty */, err
 }
