@@ -5,34 +5,11 @@ package telegraph
 ////////////////
 // API resonse
 
-// APIResponse struct
-type APIResponse struct {
-	Ok    bool   `json:"ok"`
-	Error string `json:"error,omitempty"`
-}
-
-// APIResponseAccount struct
-type APIResponseAccount struct {
-	APIResponse
-	Result Account `json:"result,omitempty"`
-}
-
-// APIResponsePage struct
-type APIResponsePage struct {
-	APIResponse
-	Result Page `json:"result,omitempty"`
-}
-
-// APIResponsePageList struct
-type APIResponsePageList struct {
-	APIResponse
-	Result PageList `json:"result,omitempty"`
-}
-
-// APIResponsePageViews struct
-type APIResponsePageViews struct {
-	APIResponse
-	Result PageViews `json:"result,omitempty"`
+// APIResponse struct (base)
+type APIResponse[T any] struct {
+	Ok     bool   `json:"ok"`
+	Error  string `json:"error,omitempty"`
+	Result T      `json:"result,omitempty"`
 }
 
 ////////////////
@@ -54,7 +31,7 @@ type Account struct {
 // Node type
 //
 // http://telegra.ph/api#Node
-type Node interface{} // XXX - can be a string, or NodeElement
+type Node any // XXX - can be a string, or NodeElement
 
 // NodeElement type
 //

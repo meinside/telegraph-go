@@ -4,7 +4,7 @@ package telegraph
 
 // constants
 const (
-	APIBaseURL = "https://api.telegra.ph"
+	apiBaseURL = "https://api.telegra.ph"
 )
 
 // Verbose flag for logging
@@ -16,27 +16,20 @@ type Client struct {
 }
 
 // Create creates a new Telegraph client.
-func Create(shortName, authorName, authorURL string) (*Client, error) {
-	client := Client{}
-
-	created, err := client.CreateAccount(shortName, authorName, authorURL)
-
-	if err == nil {
-		return &Client{AccessToken: created.AccessToken}, nil
+func Create(shortName, authorName, authorURL string) (client *Client, err error) {
+	var account Account
+	if account, err = client.CreateAccount(shortName, authorName, authorURL); err == nil {
+		client = &Client{AccessToken: account.AccessToken}
 	}
 
-	return nil, err
+	return client, err
 }
 
-// Load a Telegraph client with access token.
-func Load(accessToken string) (*Client, error) {
-	client := Client{AccessToken: accessToken}
+// Load a Telegraph client with an existing access token.
+func Load(accessToken string) (client *Client, err error) {
+	client = &Client{AccessToken: accessToken}
 
-	_, err := client.GetAccountInfo(nil)
+	_, err = client.GetAccountInfo(nil)
 
-	if err == nil {
-		return &client, nil
-	}
-
-	return nil, err
+	return client, err
 }

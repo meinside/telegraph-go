@@ -1,6 +1,6 @@
 # telegraph-go
 
-Go library for using [Telegraph API](http://telegra.ph/api).
+Go library for using [Telegraph API](https://telegra.ph/api).
 
 ## Install
 
@@ -18,6 +18,6 @@ See codes in [./samples/](https://github.com/meinside/telegraph-go/tree/master/s
 
 - [X] Add a helper function for converting HTML strings into []telegraph.Node
 - [X] Support go module
-- [ ] Add tests
+- [X] Add tests
 - [ ] Add benchmarks
 
