@@ -1,0 +1,21 @@
+name: CI
+
+on:
+  push:
+    branches: [master, develop]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - run: go vet ./...
+      # -short skips TestLiveAPI, which creates accounts and pages on telegra.ph
+      - run: go test -short -race ./...
+      - uses: golangci/golangci-lint-action@v9
+        with:
+          version: latest

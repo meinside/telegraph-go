@@ -1,166 +1,84 @@
 package main
 
 // telegraph-go/samples/simple
+//
+// Creates a throwaway Telegraph account, publishes a page and reads it back.
 
 import (
+	"context"
+	"errors"
 	"log"
+	"log/slog"
+	"os"
+	"time"
 
 	telegraph "github.com/meinside/telegraph-go"
 )
 
-const (
-	//verbose = false
-	verbose = true
-
-	html = `This page is for <b>testing</b>.
+const html = `This page is for <b>testing</b>.
 THIS IS THE FIRST LINE.
 <p>
-	<img src="http://i2.cdn.cnn.com/cnnnext/dam/assets/160927210830-tk-ah0927-exlarge-169.jpg" alt="Pepe the frog">
+	<img src="https://telegra.ph/images/logo.png" alt="Telegraph logo">
 </p>
-<font color="#FF0000">THIS IS THE RED LINE.</font> <i>(coloring not supported?)</i>`
-)
+<font color="#FF0000">THIS IS THE RED LINE.</font> <i>(coloring not supported)</i>`
 
 func main() {
-	telegraph.Verbose = verbose
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
 
-	var savedAccessToken string
+	// log every request at debug level (the access token is redacted)
+	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
-	// (1) XXX - create a new account,
-	if client, err := telegraph.Create("telegraph-test", "Telegraph Test", ""); err == nil {
-		log.Printf("> Created client: %#+v", client)
-
-		savedAccessToken = client.AccessToken
-
-		// GetAccountInfo
-		if account, err := client.GetAccountInfo(nil); err == nil {
-			log.Printf("> GetAccountInfo result: %#+v", account)
-		} else {
-			log.Printf("* GetAccountInfo error: %s", err)
-		}
-
-		// EditAccountInfo
-		if account, err := client.EditAccountInfo("telegraph-test", "Telegraph API Test", ""); err == nil {
-			log.Printf("> EditAccountInfo result: %#+v", account)
-		} else {
-			log.Printf("* EditAccountInfo error: %s", err)
-		}
-
-		// CreatePage
-		if page, err := client.CreatePageWithHTML("Test page", "Telegraph Test", "", html, true); err == nil {
-			log.Printf("> CreatePage result: %#+v", page)
-			log.Printf("> Created page url: %s", page.URL)
-
-			// GetPage
-			if page, err := client.GetPage(page.Path, true); err == nil {
-				log.Printf("> GetPage result: %#+v", page)
-			} else {
-				log.Printf("* GetPage error: %s", err)
-			}
-
-			content, _ := telegraph.NewNodesWithHTML(html)
-
-			// EditPage
-			if page, err := client.EditPage(page.Path, "Test page (edited)", content, "", "http://www.google.com", true); err == nil {
-				log.Printf("> EditPage result: %#+v", page)
-				log.Printf("> Edited page url: %s", page.URL)
-			} else {
-				log.Printf("* EditPage error: %s", err)
-			}
-		} else {
-			log.Printf("* CreatePage error: %s", err)
-		}
-
-		// GetPageList
-		if pages, err := client.GetPageList(0, 50); err == nil {
-			log.Printf("> GetPageList result: %#+v", pages)
-
-			for _, page := range pages.Pages {
-				// GetViews
-				if views, err := client.GetViews(page.Path, 2016, 0, 0, -1); err == nil {
-					log.Printf("> GetViews result for %s: %#+v", page.Path, views)
-				} else {
-					log.Printf("* GetViews error: %s", err)
-				}
-			}
-		} else {
-			log.Printf("* GetPageList error: %s", err)
-		}
-	} else {
-		log.Printf("* Create error: %s", err)
+	// create a new account; to reuse one, keep client.AccessToken() and call telegraph.Load
+	client, err := telegraph.Create(ctx, telegraph.CreateAccountParams{
+		ShortName:  "telegraph-test",
+		AuthorName: "Telegraph Test",
+	}, telegraph.WithLogger(logger))
+	if err != nil {
+		log.Fatalf("Create: %v", err)
 	}
 
-	if savedAccessToken == "" {
-		log.Printf("* Couldn't save access token, exiting...")
-		return
+	account, err := client.GetAccountInfo(ctx, telegraph.FieldShortName, telegraph.FieldAuthURL)
+	if err != nil {
+		log.Fatalf("GetAccountInfo: %v", err)
+	}
+	log.Printf("account %q, browser login (valid 5 minutes): %s", account.ShortName, account.AuthURL)
+
+	page, err := client.CreatePageWithHTML(ctx, telegraph.CreatePageParams{Title: "Test page"}, html)
+	if err != nil {
+		var apiErr *telegraph.APIError
+		if errors.As(err, &apiErr) {
+			if wait, ok := apiErr.FloodWait(); ok {
+				log.Fatalf("rate limited, retry after %s", wait)
+			}
+		}
+		log.Fatalf("CreatePageWithHTML: %v", err)
+	}
+	log.Printf("created %s", page.URL)
+
+	page, err = client.GetPage(ctx, page.Path, true)
+	if err != nil {
+		log.Fatalf("GetPage: %v", err)
+	}
+	rendered, err := telegraph.NodesToHTML(page.Content)
+	if err != nil {
+		log.Fatalf("NodesToHTML: %v", err)
+	}
+	log.Printf("content as HTML: %s", rendered)
+
+	// append a paragraph to the fetched content and save it
+	page.Content = append(page.Content, telegraph.NodeElement{Tag: "p", Children: telegraph.Nodes{"(edited)"}})
+	if _, err := client.EditPage(ctx, telegraph.EditPageParams{
+		Path:    page.Path,
+		Title:   "Test page (edited)",
+		Content: page.Content,
+	}); err != nil {
+		log.Fatalf("EditPage: %v", err)
 	}
 
-	// (2) XXX - or load an existing account with your access token
-	if client, err := telegraph.Load(savedAccessToken); err == nil {
-		log.Printf("> Loaded client: %#+v", client)
-
-		// GetAccountInfo
-		if account, err := client.GetAccountInfo(nil); err == nil {
-			log.Printf("> GetAccountInfo result: %#+v", account)
-		} else {
-			log.Printf("* GetAccountInfo error: %s", err)
-		}
-
-		// EditAccountInfo
-		if account, err := client.EditAccountInfo("telegraph-test", "Telegraph API Test", ""); err == nil {
-			log.Printf("> EditAccountInfo result: %#+v", account)
-		} else {
-			log.Printf("* EditAccountInfo error: %s", err)
-		}
-
-		// CreatePage
-		if page, err := client.CreatePageWithHTML("Test page", "Telegraph Test", "", html, true); err == nil {
-			log.Printf("> CreatePage result: %#+v", page)
-			log.Printf("> Created page url: %s", page.URL)
-
-			// GetPage
-			if page, err := client.GetPage(page.Path, true); err == nil {
-				log.Printf("> GetPage result: %#+v", page)
-			} else {
-				log.Printf("* GetPage error: %s", err)
-			}
-
-			content, _ := telegraph.NewNodesWithHTML(html)
-
-			// EditPage
-			if page, err := client.EditPage(page.Path, "Test page (edited)", content, "", "http://www.google.com", true); err == nil {
-				log.Printf("> EditPage result: %#+v", page)
-
-				log.Printf("> Edited page url: %s", page.URL)
-			} else {
-				log.Printf("* EditPage error: %s", err)
-			}
-		} else {
-			log.Printf("* CreatePage error: %s", err)
-		}
-
-		// GetPageList
-		if pages, err := client.GetPageList(0, 50); err == nil {
-			log.Printf("> GetPageList result: %#+v", pages)
-
-			for _, page := range pages.Pages {
-				// GetViews
-				if views, err := client.GetViews(page.Path, 2016, 0, 0, -1); err == nil {
-					log.Printf("> GetViews result for %s: %#+v", page.Path, views)
-				} else {
-					log.Printf("* GetViews error: %s", err)
-				}
-			}
-		} else {
-			log.Printf("* GetPageList error: %s", err)
-		}
-
-		// RevokeAccessToken
-		if account, err := client.RevokeAccessToken(); err == nil {
-			log.Printf("> RevokeAccessToken result: %#+v", account)
-		} else {
-			log.Printf("* RevokeAccessToken error: %s", err)
-		}
-	} else {
-		log.Printf("* Load error: %s", err)
+	views, err := client.GetViews(ctx, page.Path, telegraph.GetViewsParams{Year: time.Now().Year()})
+	if err != nil {
+		log.Fatalf("GetViews: %v", err)
 	}
+	log.Printf("views this year: %d", views.Views)
 }
