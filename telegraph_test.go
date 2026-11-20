@@ -1,120 +1,111 @@
 package telegraph
 
 import (
+	"context"
+	"log/slog"
 	"os"
 	"testing"
+	"time"
 )
 
-const (
-	htmlForTest = `This page is for <b>testing</b>.
+const htmlForTest = `This page is for <b>testing</b>.
 THIS IS THE FIRST LINE.
 <p>
-	<img src="http://i2.cdn.cnn.com/cnnnext/dam/assets/160927210830-tk-ah0927-exlarge-169.jpg" alt="Pepe the frog">
+	<img src="https://telegra.ph/images/logo.png" alt="Telegraph logo">
 </p>
-<font color="#FF0000">THIS IS THE RED LINE.</font> <i>(coloring not supported?)</i>`
-)
+<font color="#FF0000">THIS IS THE RED LINE.</font> <i>(coloring not supported)</i>`
 
-func TestMethods(t *testing.T) {
-	Verbose = os.Getenv("VERBOSE") == "true"
-
-	var savedAccessToken string
-
-	// (1) XXX - create a new account,
-	if client, err := Create("telegraph-test", "Telegraph Test", ""); err == nil {
-		savedAccessToken = client.AccessToken
-
-		// GetAccountInfo
-		if _, err := client.GetAccountInfo(nil); err != nil {
-			t.Errorf("failed to get account info: %s", err)
-		}
-
-		// EditAccountInfo
-		if _, err := client.EditAccountInfo("telegraph-test", "Telegraph API Test", ""); err != nil {
-			t.Errorf("failed to edit account info: %s", err)
-		}
-
-		// CreatePage
-		if page, err := client.CreatePageWithHTML("Test page", "Telegraph Test", "", htmlForTest, true); err == nil {
-			// GetPage
-			if _, err := client.GetPage(page.Path, true); err != nil {
-				t.Errorf("failed to get created page: %s", err)
-			}
-
-			content, _ := NewNodesWithHTML(htmlForTest)
-
-			// EditPage
-			if _, err := client.EditPage(page.Path, "Test page (edited)", content, "", "http://www.google.com", true); err != nil {
-				t.Errorf("failed to edit created page: %s", err)
-			}
-		} else {
-			t.Errorf("failed to create page: %s", err)
-		}
-
-		// GetPageList
-		if pages, err := client.GetPageList(0, 50); err == nil {
-			for _, page := range pages.Pages {
-				// GetViews
-				if _, err := client.GetViews(page.Path, 2016, 0, 0, -1); err != nil {
-					t.Errorf("failed to get views: %s", err)
-				}
-			}
-		} else {
-			t.Errorf("failed to get page list: %s", err)
-		}
-	} else {
-		t.Errorf("failed to create a new client: %s", err)
+// TestLiveAPI runs every method against the real Telegraph API.
+// It creates a throwaway account and pages on telegra.ph; `go test -short` skips it.
+// Set VERBOSE=true to log requests.
+func TestLiveAPI(t *testing.T) {
+	if testing.Short() {
+		t.Skip("calls the real Telegraph API")
 	}
 
-	if savedAccessToken == "" {
-		t.Fatal("failed to save access token")
+	var opts []Option
+	if os.Getenv("VERBOSE") == "true" {
+		opts = append(opts, WithLogger(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))))
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+
+	created, err := Create(ctx, CreateAccountParams{ShortName: "telegraph-test", AuthorName: "Telegraph Test"}, opts...)
+	if err != nil {
+		t.Fatalf("Create: %v", err)
 	}
 
-	// (2) XXX - or load an existing account with your access token
-	if client, err := Load(savedAccessToken); err == nil {
-		// GetAccountInfo
-		if _, err := client.GetAccountInfo(nil); err != nil {
-			t.Errorf("failed to get account info with existing access token: %s", err)
-		}
+	// a client loaded from a saved token must work the same as the created one
+	loaded, err := Load(ctx, created.AccessToken(), opts...)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
 
-		// EditAccountInfo
-		if _, err := client.EditAccountInfo("telegraph-test", "Telegraph API Test", ""); err != nil {
-			t.Errorf("failed to edit account info with existing access token: %s", err)
-		}
+	for name, client := range map[string]*Client{"created": created, "loaded": loaded} {
+		t.Run(name, func(t *testing.T) { exerciseClient(ctx, t, client) })
+	}
 
-		// CreatePage
-		if page, err := client.CreatePageWithHTML("Test page", "Telegraph Test", "", htmlForTest, true); err == nil {
-			// GetPage
-			if _, err := client.GetPage(page.Path, true); err != nil {
-				t.Errorf("failed to get created page with existing access token: %s", err)
-			}
+	old := loaded.AccessToken()
+	acc, err := loaded.RevokeAccessToken(ctx)
+	if err != nil {
+		t.Fatalf("RevokeAccessToken: %v", err)
+	}
+	if acc.AccessToken == "" || loaded.AccessToken() != acc.AccessToken || acc.AccessToken == old {
+		t.Fatalf("token not rotated: old %q, returned %q, client %q", old, acc.AccessToken, loaded.AccessToken())
+	}
+	if _, err := loaded.GetAccountInfo(ctx); err != nil {
+		t.Errorf("GetAccountInfo with revoked-then-new token: %v", err)
+	}
+}
 
-			content, _ := NewNodesWithHTML(htmlForTest)
+func exerciseClient(ctx context.Context, t *testing.T, c *Client) {
+	acc, err := c.GetAccountInfo(ctx, FieldShortName, FieldPageCount)
+	if err != nil {
+		t.Fatalf("GetAccountInfo: %v", err)
+	}
+	t.Logf("account %q has %d pages", acc.ShortName, acc.PageCount)
 
-			// EditPage
-			if _, err := client.EditPage(page.Path, "Test page (edited)", content, "", "http://www.google.com", true); err != nil {
-				t.Errorf("failed to edit created page with existing access token: %s", err)
-			}
-		} else {
-			t.Errorf("failed to create page with existing access token: %s", err)
-		}
+	if _, err := c.EditAccountInfo(ctx, EditAccountInfoParams{AuthorName: Ptr("Telegraph API Test")}); err != nil {
+		t.Errorf("EditAccountInfo: %v", err)
+	}
 
-		// GetPageList
-		if pages, err := client.GetPageList(0, 50); err == nil {
-			for _, page := range pages.Pages {
-				// GetViews
-				if _, err := client.GetViews(page.Path, 2016, 0, 0, -1); err != nil {
-					t.Errorf("failed to get views with existing access token: %s", err)
-				}
-			}
-		} else {
-			t.Errorf("failed to get page list with existing access token: %s", err)
-		}
+	page, err := c.CreatePageWithHTML(ctx, CreatePageParams{Title: "Test page", AuthorName: "Telegraph Test", ReturnContent: true}, htmlForTest)
+	if err != nil {
+		t.Fatalf("CreatePageWithHTML: %v", err)
+	}
+	if !page.CanEdit {
+		t.Error("CreatePage: CanEdit = false for the owner")
+	}
 
-		// RevokeAccessToken
-		if _, err := client.RevokeAccessToken(); err != nil {
-			t.Errorf("failed to revoke access token: %s", err)
-		}
-	} else {
-		t.Errorf("failed to load client with existing access token: %s", err)
+	fetched, err := c.GetPage(ctx, page.Path, true)
+	if err != nil {
+		t.Fatalf("GetPage: %v", err)
+	}
+
+	// send the fetched content back unchanged
+	if _, err := c.EditPage(ctx, EditPageParams{
+		Path: page.Path, Title: "Test page (edited)", Content: fetched.Content, AuthorURL: "https://telegra.ph/", ReturnContent: true,
+	}); err != nil {
+		t.Errorf("EditPage: %v", err)
+	}
+	if _, err := c.EditPageWithHTML(ctx, EditPageParams{Path: page.Path, Title: "Test page (edited with HTML)"}, htmlForTest); err != nil {
+		t.Errorf("EditPageWithHTML: %v", err)
+	}
+
+	list, err := c.GetPageList(ctx, 0, 0)
+	if err != nil {
+		t.Fatalf("GetPageList: %v", err)
+	}
+	if len(list.Pages) == 0 {
+		t.Fatal("GetPageList returned no pages")
+	}
+	now := time.Now().UTC()
+	if _, err := c.GetViews(ctx, list.Pages[0].Path, GetViewsParams{}); err != nil {
+		t.Errorf("GetViews (total): %v", err)
+	}
+	if _, err := c.GetViews(ctx, list.Pages[0].Path, GetViewsParams{
+		Year: now.Year(), Month: int(now.Month()), Day: now.Day(), Hour: Ptr(now.Hour()),
+	}); err != nil {
+		t.Errorf("GetViews (hour): %v", err)
 	}
 }
